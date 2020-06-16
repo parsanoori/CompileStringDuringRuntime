@@ -15,7 +15,7 @@ public class CompileToCustomJavaFile {
      * @param code the code of the class under question
      * @return Class
      */
-    static public Class<?> compile(String name,String code){
+    static public Class<?> compile(String name,String code) throws CompileErrorHappenedException {
 
         ArrayList<JavaSourceFromString> inputFiles = new ArrayList<>(); // An array containing JavaSourceFrom String which is used by compiler to read what's going to be compiled.
         Map<String,JavaFileObjectForOutput> output = new HashMap<>(); // A Mao containing outputs of JavaCompiler and their outputs
@@ -35,15 +35,22 @@ public class CompileToCustomJavaFile {
         };
 
         // getting a task from compiler and calling it. Our file manager is passed to provide us the functionalities mentioned above
+        // Didn't pass neither out nor diagnosticListener since we them in stdout
         compiler.getTask(null,fileManager,null,null,null,inputFiles).call();
 
         // Creating an anonymous ClassLoader and calling our own defined findClass method to get the class that is the result we want
         Class<?> result = new ClassLoader() {
             @Override
             protected Class<?> findClass(String name) {
+                JavaFileObjectForOutput out = output.get(name);
+                if (out == null)
+                    return null;
                 return defineClass(name,output.get(name).getBytes(),0,output.get(name).getBytes().length);
             }
         }.findClass(name);
+
+        if (result == null) // result is null if there was a compile error
+            throw new CompileErrorHappenedException();
 
         return result;
     }
