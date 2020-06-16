@@ -1,5 +1,6 @@
 import javax.tools.*;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -11,10 +12,10 @@ public class CompileToFile {
      * @param name name of the class under question
      * @param code the code of the class under question passed as a parameter
      * @return a Class which is the result expected
-     * @throws Exception because there may be not access to the files in running directory
+     * @throws NoAccessToCurrentFolderException because there may be not access to the files in running directory
      */
-    static Class<?> compile(String name, String code) throws Exception {
-        StandardJavaFileManager fileManager = null;
+    static Class<?> compile(String name, String code) throws NoAccessToCurrentFolderException {
+        StandardJavaFileManager fileManager;
         try {
             File sourceFile = new File(name.replace('.', '/') + ".java"); // creates a new file object as a source file
             sourceFile.getParentFile().mkdirs(); // creates the directories needed for the file to get placed in one of them
@@ -28,11 +29,17 @@ public class CompileToFile {
             // gets a new instance of URLClassLoader
             URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{new URL("file:" + System.getProperty("user.dir") + '/')});
 
+            fileManager.close();
             // returns the class we want via calling the loadClass method of the classLoader achieved above
             return classLoader.loadClass(name);
-        } finally {
-            assert fileManager != null;
-            fileManager.close();
+        } catch (Exception exception){
+            throw new NoAccessToCurrentFolderException();
+        }
+    }
+
+    static final class NoAccessToCurrentFolderException extends Exception {
+        NoAccessToCurrentFolderException(){
+            super("There's no access to current folder");
         }
     }
 }
